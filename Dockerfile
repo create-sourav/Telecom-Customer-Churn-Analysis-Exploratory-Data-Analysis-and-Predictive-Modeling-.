@@ -13,8 +13,8 @@ COPY . /app
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose API port
-EXPOSE 8000
+# HuggingFace exposes ONLY port 7860
+EXPOSE 7860
 
-# Run FastAPI
-CMD ["uvicorn", "api.api:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run FastAPI on the correct port
+CMD ["uvicorn", "api.api:app", "--host", "0.0.0.0", "--port", "7860"]
