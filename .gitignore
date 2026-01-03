@@ -1,0 +1,59 @@
+# ---------------------------
+# 🚫 Binary / Large files (blocked on HuggingFace)
+# ---------------------------
+dashboard_powerbi/
+data/
+raw_churn_data/
+models/model.pkl
+
+# Block common binary formats
+*.pbix
+*.pdf
+*.xlsx
+*.pkl
+*.zip
+*.rar
+
+# ---------------------------
+# 🧠 ML / Experiment Outputs
+# ---------------------------
+*.csv
+*.parquet
+*.joblib
+*.h5
+*.onnx
+*.pt
+*.weights
+
+# ---------------------------
+# 🐍 Python
+# ---------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ---------------------------
+# 📦 Virtual environments
+# ---------------------------
+.venv/
+venv/
+env/
+
+# ---------------------------
+# 🛠 IDE / OS files
+# ---------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ---------------------------
+# 🧪 Notebooks checkpoints
+# ---------------------------
+.ipynb_checkpoints/
+
+# ---------------------------
+# 🐳 Docker build cache
+# ---------------------------
+*.log
