@@ -43,7 +43,7 @@ jobs:
         name: churn_predictions
         path: new_test_data/predictions_output.csv
 
-    # ---------- DOCKER SECTION ----------
+    # ---------- DOCKER BUILD (OPTIONAL FOR HF) ----------
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
