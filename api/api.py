@@ -2,7 +2,7 @@ from fastapi import FastAPI
 import joblib
 import pandas as pd
 
-from pathlib import Path
+print("🚀 API starting up...")   # <--- visible in HuggingFace logs
 
 MODEL_PATH = "models/model.pkl"
 SCALER_PATH = "models/scaler.pkl"
@@ -26,24 +26,36 @@ def load_artifacts():
 def preprocess_input(data, scaler, kmeans, feature_columns):
     df = pd.DataFrame([data])
 
-    # create geocluster
+    # Geo cluster
     df["GeoCluster"] = kmeans.predict(df[["Latitude", "Longitude"]])
 
-    # drop unused fields safely
+    # Drop fields not used by the model
     df = df.drop(
         ["Customer ID", "City", "Zip Code", "Latitude", "Longitude"],
         axis=1,
         errors="ignore"
     )
 
+    # One-hot encode
     df = pd.get_dummies(df, drop_first=True)
 
-    # align with training columns
+    # Align with training columns
     df = df.reindex(columns=feature_columns, fill_value=0)
 
     df_scaled = scaler.transform(df)
 
     return df_scaled
+
+
+@app.get("/")
+def root():
+    # HuggingFace uses this for health checks
+    return {"status": "ok", "message": "Customer Churn Prediction API is running"}
+
+
+@app.get("/health")
+def health():
+    return {"healthy": True}
 
 
 @app.post("/predict")
@@ -64,8 +76,3 @@ def predict(customer: dict):
             for i, class_name in enumerate(encoder.classes_)
         }
     }
-
-
-@app.get("/")
-def root():
-    return {"message": "Customer Churn Prediction API is running"}
