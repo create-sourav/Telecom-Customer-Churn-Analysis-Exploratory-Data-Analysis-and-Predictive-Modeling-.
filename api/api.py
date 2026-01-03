@@ -3,6 +3,7 @@ import joblib
 import pandas as pd
 from huggingface_hub import hf_hub_download
 
+
 REPO_ID = "souravmondal619/churn-mlops-model"
 
 app = FastAPI(title="Customer Churn Prediction API")
@@ -16,22 +17,35 @@ def load_artifacts():
     feature_columns = joblib.load(hf_hub_download(REPO_ID, "feature_columns.pkl"))
     churn_threshold = joblib.load(hf_hub_download(REPO_ID, "churn_threshold.pkl"))
 
-    return model, scaler, encoder, kmeans, feature_columns, churn_threshold
+    return (
+        model,
+        scaler,
+        encoder,
+        kmeans,
+        feature_columns,
+        churn_threshold,
+    )
 
 
 def preprocess_input(data, scaler, kmeans, feature_columns):
+
     df = pd.DataFrame([data])
 
-    if "Latitude" in df and "Longitude" in df:
+    # --- Geo cluster only if both values exist ---
+    if {"Latitude", "Longitude"}.issubset(df.columns):
         df["GeoCluster"] = kmeans.predict(df[["Latitude", "Longitude"]])
 
+    # remove unused fields
     df = df.drop(
         ["Customer ID", "City", "Zip Code", "Latitude", "Longitude"],
         axis=1,
         errors="ignore",
     )
 
+    # one-hot encode
     df = pd.get_dummies(df, drop_first=True)
+
+    # align with training columns
     df = df.reindex(columns=feature_columns, fill_value=0)
 
     return scaler.transform(df)
@@ -58,7 +72,7 @@ def predict(customer: dict):
 
     probs = model.predict_proba(processed)[0]
 
-    # 🔒 safer lookup (class name instead of numeric index)
+    # ------ churn probability (label-safe lookup) ------
     churn_index = list(encoder.classes_).index("Churned")
     churn_prob = float(probs[churn_index])
 
