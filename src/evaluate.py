@@ -25,13 +25,12 @@ def evaluate_model():
 
     label_encoder = joblib.load(ENCODER_PATH)
 
-    y_test_encoded = label_encoder.transform(y_test)
-
+    # y_test is already numeric (0,1,2), so use it directly
     y_pred = model.predict(x_test)
     y_prob = model.predict_proba(x_test)
 
-    accuracy = accuracy_score(y_test_encoded, y_pred)
-    loss = log_loss(y_test_encoded, y_prob)
+    accuracy = accuracy_score(y_test, y_pred)
+    loss = log_loss(y_test, y_prob)
 
     print(f"\nAccuracy: {accuracy:.4f}")
     print(f"Log Loss: {loss:.4f}")
@@ -39,7 +38,7 @@ def evaluate_model():
     print("\nPer-Class Metrics:")
     for class_index, class_name in enumerate(label_encoder.classes_):
 
-        y_true_binary = (y_test_encoded == class_index).astype(int)
+        y_true_binary = (y_test == class_index).astype(int)
         y_pred_binary = (y_pred == class_index).astype(int)
 
         precision = precision_score(y_true_binary, y_pred_binary, zero_division=0)
@@ -60,25 +59,21 @@ def evaluate_model():
         )
 
     print("\nConfusion Matrix:")
-    print(confusion_matrix(y_test_encoded, y_pred))
+    print(confusion_matrix(y_test, y_pred))
 
     print("\nClassification Report:")
-    print(classification_report(y_test_encoded, y_pred, zero_division=0))
+    print(classification_report(y_test, y_pred, zero_division=0))
 
-    # ----- Optimal churn threshold calculation -----
+    # ---- sanity check churn threshold (same as train.py) ----
     churn_index = list(label_encoder.classes_).index("Churned")
-
-    y_true_binary = (y_test_encoded == churn_index).astype(int)
+    y_true_binary = (y_test == churn_index).astype(int)
     y_churn_prob = y_prob[:, churn_index]
 
     fpr, tpr, thresholds = roc_curve(y_true_binary, y_churn_prob)
-
     optimal_idx = np.argmax(tpr - fpr)
     optimal_threshold = thresholds[optimal_idx]
 
-    joblib.dump(optimal_threshold, "models/churn_threshold.pkl")
-
-    print(f"\nOptimal Churn Threshold Saved: {optimal_threshold:.3f}")
+    print(f"\n(Eval check) Optimal Churn Threshold: {optimal_threshold:.3f}")
 
 
 if __name__ == "__main__":

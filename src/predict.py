@@ -1,7 +1,7 @@
 import joblib
 import pandas as pd
 import numpy as np
-
+import os
 
 MODEL_PATH = "models/model.pkl"
 SCALER_PATH = "models/scaler.pkl"
@@ -17,7 +17,12 @@ def load_artifacts():
     encoder = joblib.load(ENCODER_PATH)
     kmeans = joblib.load(KMEANS_PATH)
     feature_columns = joblib.load(FEATURE_COLUMNS_PATH)
-    churn_threshold = joblib.load(THRESHOLD_PATH)
+
+    # fallback safety: if threshold missing, default to 0.25
+    if os.path.exists(THRESHOLD_PATH):
+        churn_threshold = joblib.load(THRESHOLD_PATH)
+    else:
+        churn_threshold = 0.25
 
     return model, scaler, encoder, kmeans, feature_columns, churn_threshold
 
@@ -25,15 +30,21 @@ def load_artifacts():
 def preprocess_new_record(input_data, scaler, kmeans, feature_columns):
     df = pd.DataFrame([input_data])
 
-    df["GeoCluster"] = kmeans.predict(df[["Latitude", "Longitude"]])
+    # geographic clustering
+    if "Latitude" in df.columns and "Longitude" in df.columns:
+        df["GeoCluster"] = kmeans.predict(df[["Latitude", "Longitude"]])
 
+    # drop unused columns
     df = df.drop(
         ["Customer ID", "City", "Zip Code", "Latitude", "Longitude"],
         axis=1,
         errors="ignore"
     )
 
+    # one-hot encoding
     df = pd.get_dummies(df, drop_first=True)
+
+    # align with training columns
     df = df.reindex(columns=feature_columns, fill_value=0)
 
     return scaler.transform(df)
@@ -49,34 +60,31 @@ def predict_customer_status(input_data):
         churn_threshold
     ) = load_artifacts()
 
-    # capture customer id (if provided)
-    customer_id = input_data.get("Customer ID", None)
+    customer_id = input_data.get("Customer ID")
 
-    processed_record = preprocess_new_record(
-        input_data,
-        scaler,
-        kmeans,
-        feature_columns
+    processed = preprocess_new_record(
+        input_data, scaler, kmeans, feature_columns
     )
 
-    prediction_encoded = model.predict(processed_record)[0]
-    prediction_label = encoder.inverse_transform([prediction_encoded])[0]
+    pred_encoded = model.predict(processed)[0]
+    pred_label = encoder.inverse_transform([pred_encoded])[0]
 
-    probabilities = model.predict_proba(processed_record)[0]
+    probs = model.predict_proba(processed)[0]
 
+    # churn probability (class name "Churned")
     churn_index = list(encoder.classes_).index("Churned")
-    churn_prob = float(probabilities[churn_index])
+    churn_prob = float(probs[churn_index])
 
     churn_flag = "YES" if churn_prob >= churn_threshold else "NO"
 
     return {
-        "customer_id": customer_id,                 # ⭐ added
-        "prediction": prediction_label,
+        "customer_id": customer_id,
+        "prediction": pred_label,
         "churn_flag": churn_flag,
         "churn_probability": churn_prob,
         "threshold_used": float(churn_threshold),
         "probabilities": {
-            class_name: float(probabilities[i])
+            class_name: float(probs[i])
             for i, class_name in enumerate(encoder.classes_)
         }
     }
@@ -97,5 +105,4 @@ if __name__ == "__main__":
         "Payment Method": "Credit Card"
     }
 
-    result = predict_customer_status(example_customer)
-    print(result)
+    print(predict_customer_status(example_customer))

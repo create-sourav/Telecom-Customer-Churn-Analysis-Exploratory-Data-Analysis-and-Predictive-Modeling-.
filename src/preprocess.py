@@ -38,7 +38,7 @@ def load_data():
 
 
 def split_data(X, y):
-    x_train, x_test, y_train, y_test = train_test_split(
+    return train_test_split(
         X,
         y,
         test_size=0.20,
@@ -46,32 +46,41 @@ def split_data(X, y):
         random_state=0
     )
 
-    return x_train, x_test, y_train, y_test
 
-
-def preprocess_training_data(x_train, x_test, y_train):
+def preprocess_training_data(x_train, x_test, y_train, y_test):
     encoder = LabelEncoder()
+
     y_train_enc = encoder.fit_transform(y_train)
+    y_test_enc = encoder.transform(y_test)
 
     scaler = StandardScaler()
     x_train_scaled = scaler.fit_transform(x_train)
-    x_test_scaled = scaler.transform(x_test)
+    x_test_scaled  = scaler.transform(x_test)
 
     smote = BorderlineSMOTE(kind="borderline-1", random_state=0)
+
     x_train_balanced, y_train_balanced = smote.fit_resample(
         x_train_scaled,
         y_train_enc
     )
 
-    return x_train_balanced, y_train_balanced, x_test_scaled, encoder, scaler
+    return (
+        x_train_balanced,
+        y_train_balanced,
+        x_test_scaled,
+        y_test_enc,
+        encoder,
+        scaler
+    )
 
 
-def save_artifacts(kmeans, encoder, scaler):
+def save_artifacts(kmeans, encoder, scaler, feature_columns):
     os.makedirs(ARTIFACT_DIR, exist_ok=True)
 
     joblib.dump(kmeans, f"{ARTIFACT_DIR}/kmeans.pkl")
     joblib.dump(encoder, f"{ARTIFACT_DIR}/label_encoder.pkl")
     joblib.dump(scaler, f"{ARTIFACT_DIR}/scaler.pkl")
+    joblib.dump(feature_columns, f"{ARTIFACT_DIR}/feature_columns.pkl")
 
 
 def run_preprocessing():
@@ -83,20 +92,38 @@ def run_preprocessing():
         x_train_balanced,
         y_train_balanced,
         x_test_scaled,
+        y_test_encoded,
         encoder,
         scaler
-    ) = preprocess_training_data(x_train, x_test, y_train)
+    ) = preprocess_training_data(x_train, x_test, y_train, y_test)
 
-    save_artifacts(kmeans, encoder, scaler)
+    feature_columns = X.columns.tolist()
 
-    # NEW — save feature column order for prediction
-    joblib.dump(X.columns.tolist(), "models/feature_columns.pkl")
+    save_artifacts(kmeans, encoder, scaler, feature_columns)
 
-    return x_train_balanced, y_train_balanced, x_test_scaled, y_test
+    return (
+        x_train_balanced,
+        y_train_balanced,
+        x_test_scaled,
+        y_test_encoded,
+        scaler,
+        encoder,
+        kmeans,
+        feature_columns
+    )
 
 
 if __name__ == "__main__":
-    x_train_balanced, y_train_balanced, x_test_scaled, y_test = run_preprocessing()
+    (
+        x_train_balanced,
+        y_train_balanced,
+        x_test_scaled,
+        y_test_encoded,
+        scaler,
+        encoder,
+        kmeans,
+        feature_columns
+    ) = run_preprocessing()
 
     print("Preprocessing complete.")
     print("Train shape:", x_train_balanced.shape)
