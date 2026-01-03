@@ -1,36 +1,27 @@
 from fastapi import FastAPI
-import pandas as pd
 import joblib
-
+import pandas as pd
 from huggingface_hub import hf_hub_download
 
-print(" API starting up...")
-
-REPO_ID = "souravmondal619/churn-mlops-model"   # HF model repo
+REPO_ID = "souravmondal619/churn-mlops-model"
 
 app = FastAPI(title="Customer Churn Prediction API")
 
-
 def load_artifacts():
-    model_path = hf_hub_download(REPO_ID, "model.pkl")
-    scaler_path = hf_hub_download(REPO_ID, "scaler.pkl")
-    encoder_path = hf_hub_download(REPO_ID, "label_encoder.pkl")
-    kmeans_path = hf_hub_download(REPO_ID, "kmeans.pkl")
-    feature_cols_path = hf_hub_download(REPO_ID, "feature_columns.pkl")
 
-    model = joblib.load(model_path)
-    scaler = joblib.load(scaler_path)
-    encoder = joblib.load(encoder_path)
-    kmeans = joblib.load(kmeans_path)
-    feature_columns = joblib.load(feature_cols_path)
+    model = joblib.load(hf_hub_download(REPO_ID, "model.pkl"))
+    scaler = joblib.load(hf_hub_download(REPO_ID, "scaler.pkl"))
+    encoder = joblib.load(hf_hub_download(REPO_ID, "label_encoder.pkl"))
+    kmeans = joblib.load(hf_hub_download(REPO_ID, "kmeans.pkl"))
+    feature_columns = joblib.load(hf_hub_download(REPO_ID, "feature_columns.pkl"))
 
     return model, scaler, encoder, kmeans, feature_columns
 
 
 def preprocess_input(data, scaler, kmeans, feature_columns):
+
     df = pd.DataFrame([data])
 
-    # Geo cluster
     df["GeoCluster"] = kmeans.predict(df[["Latitude", "Longitude"]])
 
     df = df.drop(
@@ -50,16 +41,12 @@ def preprocess_input(data, scaler, kmeans, feature_columns):
 
 @app.get("/")
 def root():
-    return {"status": "ok", "message": "Customer Churn Prediction API is running"}
-
-
-@app.get("/health")
-def health():
-    return {"healthy": True}
+    return {"status": "ok", "message": "API online"}
 
 
 @app.post("/predict")
 def predict(customer: dict):
+
     model, scaler, encoder, kmeans, feature_columns = load_artifacts()
 
     processed = preprocess_input(customer, scaler, kmeans, feature_columns)
