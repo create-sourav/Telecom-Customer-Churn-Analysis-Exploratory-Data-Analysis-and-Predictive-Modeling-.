@@ -30,15 +30,19 @@ def load_artifacts():
 
 
 def preprocess(df, scaler, kmeans, feature_columns):
+
+    # Geo cluster
     if {"Latitude", "Longitude"}.issubset(df.columns):
         df["GeoCluster"] = kmeans.predict(df[["Latitude", "Longitude"]])
 
+    # Drop unused
     df = df.drop(
         ["City", "Zip Code", "Latitude", "Longitude"],
         axis=1,
         errors="ignore"
     )
 
+    # One-hot encode & align columns
     df = pd.get_dummies(df, drop_first=True)
     df = df.reindex(columns=feature_columns, fill_value=0)
 
@@ -60,8 +64,11 @@ def run_batch_predictions():
     X = preprocess(df.copy(), scaler, kmeans, feature_columns)
 
     probs = model.predict_proba(X)
+
+    # Index for churn class
     churn_index = list(encoder.classes_).index("Churned")
 
+    # Main outputs
     df["Prediction"] = encoder.inverse_transform(model.predict(X))
     df["Churn_Probability"] = probs[:, churn_index]
     df["Churn_Flag"] = (df["Churn_Probability"] >= churn_threshold).map(
@@ -69,8 +76,21 @@ def run_batch_predictions():
     )
     df["Threshold_Used"] = float(churn_threshold)
 
-    df_out = df[["Customer ID", "Prediction", "Churn_Flag",
-                 "Churn_Probability", "Threshold_Used"]]
+    # ----- FULL CLASS PROBABILITIES -----
+    for i, cls in enumerate(encoder.classes_):
+        df[f"Prob_{cls}"] = probs[:, i]
+
+    # final output columns
+    df_out = df[
+        ["Customer ID",
+         "Prediction",
+         "Churn_Flag",
+         "Churn_Probability",
+         "Threshold_Used",
+         "Prob_Churned",
+         "Prob_Joined",
+         "Prob_Stayed"]
+    ]
 
     df_out.to_csv(OUTPUT_FILE, index=False)
 
