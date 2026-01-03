@@ -196,7 +196,7 @@ pip install -r requirements.txt
 3. **Verify data availability**
 ```bash
 # Ensure training data exists
-ls data/churn_clean.xlsx
+ data/churn_clean.xlsx
 ```
 
 ### Local Execution
@@ -227,7 +227,7 @@ python src/batch_predict.py
 
 ```bash
 # 1. Update the training dataset
-cp your_new_data.xlsx data/churn_clean.xlsx
+ churn_clean.xlsx
 
 # 2. Commit and push changes
 git add data/churn_clean.xlsx
@@ -244,17 +244,15 @@ git push origin main
 
 ### 2️⃣ Batch Predictions (Excel → CSV)
 
-**For business teams to score customer lists:**
-
 ```bash
-# 1. Place your customer data file
-cp customer_list.xlsx new_test_data/new_data.xlsx
+# 1. Place new customer data file
+ new_test_data/new_data.xlsx
 
 # 2. Run batch prediction
-python src/batch_predict.py
+src/batch_predict.py
 
 # 3. Retrieve results
-cat new_test_data/predictions_output.csv
+new_test_data/predictions_output.csv
 ```
 
 **Output format:**
@@ -673,11 +671,11 @@ This project uses a **Dockerfile** so the API runs the **same way everywhere** �
 # Build image
 docker build -t churn-api .
 
-# Run container
-docker run -p 8000:8000 churn-api
+# Run container (HF Spaces uses port 7860)
+docker run -p 7860:7860 churn-api
 
 # Access API
-curl http://localhost:8000/docs
+curl http://localhost:7860/docs
 ```
 
 **Hugging Face Spaces uses the same Dockerfile**, ensuring identical behavior between your local development and production deployment.
