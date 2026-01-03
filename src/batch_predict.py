@@ -74,7 +74,7 @@ def run_batch_predictions():
     df["Churn_Flag"] = (df["Churn_Probability"] >= churn_threshold).map(
         {True: "YES", False: "NO"}
     )
-    df["Threshold_Used"] = float(churn_threshold)
+    df["Threshold_Churn_Used"] = float(churn_threshold)
 
     # ----- FULL CLASS PROBABILITIES -----
     for i, cls in enumerate(encoder.classes_):
