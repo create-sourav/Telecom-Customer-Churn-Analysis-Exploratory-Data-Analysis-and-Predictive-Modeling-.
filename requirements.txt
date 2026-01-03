@@ -1,8 +1,8 @@
 fastapi
 uvicorn
 pandas
-numpy
 scikit-learn
-imblearn
 joblib
-openpyxl
+imblearn
+huggingface-hub
+numpy
