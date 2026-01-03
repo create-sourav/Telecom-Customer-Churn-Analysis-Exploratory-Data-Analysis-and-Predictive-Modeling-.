@@ -86,7 +86,7 @@ def run_batch_predictions():
          "Prediction",
          "Churn_Flag",
          "Churn_Probability",
-         "Threshold_Used",
+         "Threshold_Churn_Used",
          "Prob_Churned",
          "Prob_Joined",
          "Prob_Stayed"]
