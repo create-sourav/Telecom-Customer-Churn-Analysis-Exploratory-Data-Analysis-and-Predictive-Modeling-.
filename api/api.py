@@ -1,24 +1,28 @@
 from fastapi import FastAPI
-import joblib
 import pandas as pd
+import joblib
 
-print("🚀 API starting up...")   # <--- visible in HuggingFace logs
+from huggingface_hub import hf_hub_download
 
-MODEL_PATH = "models/model.pkl"
-SCALER_PATH = "models/scaler.pkl"
-ENCODER_PATH = "models/label_encoder.pkl"
-KMEANS_PATH = "models/kmeans.pkl"
-FEATURE_COLUMNS_PATH = "models/feature_columns.pkl"
+print(" API starting up...")
+
+REPO_ID = "souravmondal619/churn-mlops-model"   # HF model repo
 
 app = FastAPI(title="Customer Churn Prediction API")
 
 
 def load_artifacts():
-    model = joblib.load(MODEL_PATH)
-    scaler = joblib.load(SCALER_PATH)
-    encoder = joblib.load(ENCODER_PATH)
-    kmeans = joblib.load(KMEANS_PATH)
-    feature_columns = joblib.load(FEATURE_COLUMNS_PATH)
+    model_path = hf_hub_download(REPO_ID, "model.pkl")
+    scaler_path = hf_hub_download(REPO_ID, "scaler.pkl")
+    encoder_path = hf_hub_download(REPO_ID, "label_encoder.pkl")
+    kmeans_path = hf_hub_download(REPO_ID, "kmeans.pkl")
+    feature_cols_path = hf_hub_download(REPO_ID, "feature_columns.pkl")
+
+    model = joblib.load(model_path)
+    scaler = joblib.load(scaler_path)
+    encoder = joblib.load(encoder_path)
+    kmeans = joblib.load(kmeans_path)
+    feature_columns = joblib.load(feature_cols_path)
 
     return model, scaler, encoder, kmeans, feature_columns
 
@@ -29,17 +33,14 @@ def preprocess_input(data, scaler, kmeans, feature_columns):
     # Geo cluster
     df["GeoCluster"] = kmeans.predict(df[["Latitude", "Longitude"]])
 
-    # Drop fields not used by the model
     df = df.drop(
         ["Customer ID", "City", "Zip Code", "Latitude", "Longitude"],
         axis=1,
         errors="ignore"
     )
 
-    # One-hot encode
     df = pd.get_dummies(df, drop_first=True)
 
-    # Align with training columns
     df = df.reindex(columns=feature_columns, fill_value=0)
 
     df_scaled = scaler.transform(df)
@@ -49,7 +50,6 @@ def preprocess_input(data, scaler, kmeans, feature_columns):
 
 @app.get("/")
 def root():
-    # HuggingFace uses this for health checks
     return {"status": "ok", "message": "Customer Churn Prediction API is running"}
 
 
