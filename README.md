@@ -10,7 +10,7 @@
 
 **End-to-end machine learning system that predicts customer churn and recommends retention strategies**
 
-[Live API Demo](https://souravmondal619-churn-mlops-api.hf.space/docs) • [Report Bug](../../issues) • [Request Feature](../../issues)
+[Live API Demo](https://souravmondal619-churn-mlops-api.hf.space/docs) 
 
 </div>
 
